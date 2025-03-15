@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Form, Button, Alert } from 'react-bootstrap';
 import { createProducto } from '../services/productoService';
-import { getCategorias } from '../services/categoriaService'; // Asegúrate de que este servicio exista
+import { getCategorias } from '../services/categoriaService'; 
 import { getAdministradores } from '../services/administradorService';
 import { useNavigate } from 'react-router-dom';
 
