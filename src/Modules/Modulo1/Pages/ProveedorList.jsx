@@ -5,11 +5,14 @@ import { Link } from 'react-router-dom';
 import { getProveedores, deleteProveedor, updateProveedor } from '../services/proveedorService';
 import { getProductoProveedores, deleteProductoProveedor } from '../services/productoproveedorService';
 import { getAdministradores } from '../services/administradorService';
+import telefonoProveedorService from '../services/telefonoProveedorService'; // Servicio de teléfonos
 
 const ProveedorList = () => {
   const [proveedores, setProveedores] = useState([]);
   const [productoProveedores, setProductoProveedores] = useState([]);
   const [administradores, setAdministradores] = useState([]);
+  const [telefonos, setTelefonos] = useState([]); // Estado global de teléfonos
+  const [telefonosEdicion, setTelefonosEdicion] = useState([]); // Teléfonos del proveedor en edición
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [message, setMessage] = useState("");
@@ -43,7 +46,6 @@ const ProveedorList = () => {
         setProductoProveedores(productoProveedoresData);
       } catch (err) {
         console.error("Error al cargar producto-proveedores:", err);
-        // Opcional: setError("Error al cargar las relaciones de producto-proveedor.");
       }
       
       setLoading(false);
@@ -52,13 +54,27 @@ const ProveedorList = () => {
     fetchData();
   }, []);
 
-  // Cargar administradores para el select en el modal de Proveedor
+  // Cargar administradores
   useEffect(() => {
     getAdministradores()
       .then((data) => {
         setAdministradores(data);
       })
       .catch((err) => console.error("Error al cargar administradores:", err));
+  }, []);
+
+  // Cargar todos los teléfonos de proveedores
+  useEffect(() => {
+    const fetchTelefonos = async () => {
+      try {
+        const telefonosData = await telefonoProveedorService.getAllTelefonos();
+        console.log("Telefonos recibidos:", telefonosData);
+        setTelefonos(telefonosData);
+      } catch (err) {
+        console.error("Error al cargar teléfonos:", err);
+      }
+    };
+    fetchTelefonos();
   }, []);
 
   // Funciones para Proveedor
@@ -82,12 +98,18 @@ const ProveedorList = () => {
       apellidoProv: prov.apellidoProv,
       idAdmin: prov.administrador?.idAdmin || ""
     });
+    // Filtrar los teléfonos asociados a este proveedor
+    const telefonosForEdit = telefonos.filter(
+      tel => tel.proveedor && Number(tel.proveedor.idProveedor) === Number(prov.idProveedor)
+    );
+    setTelefonosEdicion(telefonosForEdit);
     setShowEditModal(true);
   };
 
   const closeEditModal = () => {
     setShowEditModal(false);
     setProveedorToEdit(null);
+    setTelefonosEdicion([]);
   };
 
   const handleEditChange = (e) => {
@@ -97,9 +119,43 @@ const ProveedorList = () => {
     });
   };
 
+  // Maneja el cambio en los campos de teléfono dentro del modal
+  const handleTelefonoChange = (e, index) => {
+    const newValue = Number(e.target.value);
+    console.log("Valor del teléfono:", newValue);
+    const newTelefonos = [...telefonosEdicion];
+    newTelefonos[index].telProv = newValue;
+    setTelefonosEdicion(newTelefonos);
+  };
+
+  // Función para eliminar un teléfono (llama al servicio y actualiza el estado)
+  const handleDeleteTelefono = async (idTelprov) => {
+    try {
+      await telefonoProveedorService.deleteTelefono(idTelprov);
+      setTelefonosEdicion(telefonosEdicion.filter(tel => tel.idTelprov !== idTelprov));
+      // También se actualiza el estado global de teléfonos
+      setTelefonos(telefonos.filter(tel => tel.idTelprov !== idTelprov));
+      setMessage("Teléfono eliminado exitosamente");
+    } catch (error) {
+      console.error("Error al eliminar teléfono:", error);
+      setError("Error al eliminar teléfono");
+    }
+  };
+
+  // Función para agregar un nuevo teléfono (crea un objeto temporal)
+  const handleAddTelefono = () => {
+    const newTelefono = { 
+      idTelprov: Date.now(), // id temporal; en la actualización deberías crear el teléfono en el backend
+      telProv: "", 
+      proveedor: { idProveedor: proveedorToEdit.idProveedor }
+    };
+    setTelefonosEdicion([...telefonosEdicion, newTelefono]);
+  };
+
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     try {
+      // Actualizar datos del proveedor
       const updatedData = {
         correoProveedor: editForm.correoProveedor,
         empresaProv: editForm.empresaProv,
@@ -112,6 +168,25 @@ const ProveedorList = () => {
         prov.idProveedor === proveedorToEdit.idProveedor ? updatedProveedor : prov
       ));
       setMessage("Proveedor editado exitosamente");
+      
+      // Aquí puedes iterar sobre telefonosEdicion para actualizar o crear teléfonos
+      // Por ejemplo:
+      for (const tel of telefonosEdicion) {
+        if (tel.idTelprov && String(tel.idTelprov).length > 10) {
+          // Si el id es temporal, se asume que es un nuevo teléfono
+          await telefonoProveedorService.createTelefono({
+            telProv: tel.telProv,
+            proveedor: { idProveedor: proveedorToEdit.idProveedor }
+          });
+        } else {
+          // Si el teléfono ya existe, se actualiza
+          await telefonoProveedorService.updateTelefono(tel.idTelprov, {
+            telProv: tel.telProv,
+            proveedor: { idProveedor: proveedorToEdit.idProveedor }
+          });
+        }
+      }
+      
       closeEditModal();
     } catch (error) {
       console.error("Error al actualizar proveedor", error);
@@ -119,7 +194,7 @@ const ProveedorList = () => {
     }
   };
 
-  // Para Producto-Proveedor solo dejamos eliminar la relación
+  // Para Producto-Proveedor: función para eliminar relación
   const handleDeletePP = async (productoId, proveedorId) => {
     try {
       await deleteProductoProveedor(productoId, proveedorId);
@@ -164,6 +239,7 @@ const ProveedorList = () => {
             <th>Nombre</th>
             <th>Apellido</th>
             <th>Administrador</th>
+            <th>Teléfonos</th> {/* Columna para mostrar teléfonos en la lista */}
             <th>Acciones</th>
           </tr>
         </thead>
@@ -179,6 +255,12 @@ const ProveedorList = () => {
                 {prov.administrador && typeof prov.administrador === 'object'
                   ? prov.administrador.nombreAdmin
                   : prov.administrador}
+              </td>
+              <td>
+                {telefonos
+                  .filter(tel => tel.proveedor && Number(tel.proveedor.idProveedor) === Number(prov.idProveedor))
+                  .map(tel => tel.telProv)
+                  .join(", ") || "Sin teléfonos"}
               </td>
               <td>
                 <Button variant="warning" size="sm" className="me-2" onClick={() => openEditModal(prov)}>
@@ -241,13 +323,14 @@ const ProveedorList = () => {
         </Button>
       </Link>
 
-      {/* Modal para editar proveedor */}
+      {/* Modal para editar proveedor y sus teléfonos */}
       <Modal show={showEditModal} onHide={closeEditModal}>
         <Modal.Header closeButton>
           <Modal.Title>Editar Proveedor</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <Form onSubmit={handleEditSubmit}>
+            {/* Campos del proveedor */}
             <Form.Group className="mb-3">
               <Form.Label>Correo</Form.Label>
               <Form.Control
@@ -304,7 +387,27 @@ const ProveedorList = () => {
                 ))}
               </Form.Select>
             </Form.Group>
-            <Button variant="primary" type="submit">
+            
+            {/* Sección para editar y eliminar teléfonos */}
+            <h5 className="mt-4">Teléfonos</h5>
+            {telefonosEdicion.map((tel, index) => (
+              <div key={tel.idTelprov} className="d-flex align-items-center mb-2">
+                <Form.Control 
+                  type="number"
+                  value={tel.telProv}
+                  onChange={(e) => handleTelefonoChange(e, index)}
+                  className="me-2"
+                />
+                <Button variant="danger" size="sm" onClick={() => handleDeleteTelefono(tel.idTelprov)}>
+                  Eliminar
+                </Button>
+              </div>
+            ))}
+            <Button variant="secondary" size="sm" onClick={handleAddTelefono} className="mb-3">
+              Agregar Teléfono
+            </Button>
+            
+            <Button variant="primary" type="submit" className="w-100">
               Guardar Cambios
             </Button>
           </Form>

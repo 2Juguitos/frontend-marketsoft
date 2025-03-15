@@ -3,6 +3,8 @@ import axios from 'axios';
 const API_VENTAS = 'http://localhost:8082/api/ventas';
 
 
+
+
 export const postVenta = async (ventaData) => {
   try {
     const response = await axios.post(API_VENTAS, ventaData);

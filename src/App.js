@@ -15,6 +15,7 @@ import NavBarGlobal from "./Modules/Modulo1/Components/NavBarGlobal";
 import { AuthProvider } from "./context/Authcontext";
 import PrivateRoute from "./Routes/PrivateRoute";
 import Home from "./Modules/Modulo1/Pages/Home.jsx"; 
+import InventarioForm from "./Modules/Modulo1/Components/InventarioForm.jsx";
 
 function App() {
   return (
@@ -31,6 +32,7 @@ function App() {
             <Route path="/ventas-productoventa" element={<VentaProductoVentaList />} />
             <Route path="/proveedores" element={<ProveedorList />} />
             <Route path="/categorias" element={<CategoriaList />} />
+            <Route path="/crear-inventario" element={<InventarioForm />} />
             <Route path="/inventarios" element={<InventarioList />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/productos/create" element={<ProductoForm />} />
