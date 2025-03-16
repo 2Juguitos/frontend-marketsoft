@@ -16,7 +16,8 @@ import { AuthProvider } from "./context/Authcontext";
 import PrivateRoute from "./Routes/PrivateRoute";
 import Home from "./Modules/Modulo1/Pages/Home.jsx"; 
 import InventarioForm from "./Modules/Modulo1/Components/InventarioForm.jsx";
-
+import CategoriaForm from "./Modules/Modulo1/Components/CategoriaForm.jsx";
+import VentaForm from "./Modules/Modulo1/Components/productoventaventaForm.jsx"; 
 function App() {
   return (
     
@@ -29,6 +30,7 @@ function App() {
           <Route path="/productos" element={<ProductoList />} />
           
           <Route element={<PrivateRoute />}>
+          <Route path="/ventas/create" element={<VentaForm />} />
             <Route path="/ventas-productoventa" element={<VentaProductoVentaList />} />
             <Route path="/proveedores" element={<ProveedorList />} />
             <Route path="/categorias" element={<CategoriaList />} />
@@ -38,6 +40,7 @@ function App() {
             <Route path="/productos/create" element={<ProductoForm />} />
             <Route path="/proveedores/create" element={<ProveedorForm />} />
             <Route path="/producto-proveedor/create" element={<ProductoProveedorForm />} />
+            <Route path= "/crear-categoria" element={<CategoriaForm />}></Route>
           </Route>
         </Routes>
       </Router>
